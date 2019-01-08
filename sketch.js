@@ -4,7 +4,7 @@ let bugs = [];
 let a;
 var automatas = [];
 
-var mtxAutoBug = [];
+var abDistanceMap = [];
 
 function setup() {
     var canvas = createCanvas(1200, 800);
@@ -56,12 +56,11 @@ function draw() {
 
 
 function updateEnvironment(){
-    console.log("Updating Environment");
-
+    abDistanceMap =[];
     // Create matrix of bugs
-    mtxAutoBug = createMatrix(automatas,bugs);
-    console.log(mtxAutoBug);
+    abDistanceMap = createMatrix(automatas,bugs);
 
+    document.getElementById("population").innerHTML = "Population: " + automatas.length;
 
 
     // Create Matrix code

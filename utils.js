@@ -45,4 +45,5 @@ function createMatrix(rowData,columndata){
         matrixA.push(sums);
     }
     return matrixA;
+    // Math.max(...matrixA[autos.indexOf(42)])
 }

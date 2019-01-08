@@ -7,6 +7,7 @@ class Automaton{
         this.maxspeed = 4;
         this.maxF = 0.2;
         this.action = 0;
+        this.mi;
 
         this.energy = 0;
         this.metabolicRate = 5; // number of seconds to count-down an energy unit
@@ -17,9 +18,11 @@ class Automaton{
         this.colorLowE = [102,0,0];
         this.colorHighE = [51,255,255];
 
-
-        this.targetDistance = 0;
+        this.aggression = random(0,99); // to implement, more aggresive means lower proximityComfort, higher maxSpeed
         this.proximityComfort = 20;
+
+        this.desparation = true; // if flag set to true, starving will trigger adrenalineSurge.
+        this.adrenalineSurge = false; // if true, override aggression with higher number
 
         this.disabled = false;
         this.bornOn = new Date();
@@ -38,13 +41,16 @@ class Automaton{
         // Reset acceleration to 0 each cycle
         this.acc.mult(0);
 
+        // get my index
+        this.mi = automatas.indexOf(this);
+
         // Action selection behaviors for our agents
         if(a.action == 0){
             a.idle();
         }
         if(a.action == 1){
             // If a is set to seek, seek out closest bug.
-            a.seek(a.getTarget(bugs));
+            a.seek(a.getTarget());
         }
 
         // Check Energy
@@ -59,9 +65,6 @@ class Automaton{
         this.setScale();
 
     }
-
-
-
 
 
     applyForce(force) {
@@ -89,59 +92,7 @@ class Automaton{
 
     }
 
-    getTarget(bugs){
-        var targetIndex;
-        var targetMap = [];
-        // Loop through bugs, calculate the distances,
-        // and add the distances to a "targetMap.
-        // sort the map and ge
-        for(i=0;i<bugs.length;i++){
-            var bugDistVector = p5.Vector.sub(this.pos,bugs[i].pos);
 
-            //targetDistances.push(bugDistVector.mag());
-            //targetList.push(bugs[i]);
-
-            // Block for testing smarter automaton target decisions
-
-            var targetMapRef = {
-                "targetRef" : bugs[i],
-                "targetDistance":bugDistVector.mag()
-            }
-            targetMap.push(targetMapRef);
-
-            targetMap.sort(compareValues("targetDistance"));
-            targetIndex = 0;
-            this.targetDistance = targetMap[targetIndex].targetDistance;
-
-
-        }
-
-        // Get index of the minimum value in targetDistances
-        //this.targetDistance = Math.min(...targetDistances);
-        //targetIndex = targetDistances.indexOf(this.targetDistance);
-
-        // If more than an arbitrary number of automatons
-        // are closer, choose next closest target
-        var competition = [];
-        for(let i=0;i<automatas.length;i++){
-            if(automatas[i].targetDistance < this.targetDistance){
-                competition.push(automatas[i]);
-            }
-
-        }
-
-        // Set swarm size
-        if(competition.length > 15){
-            console.log("Too much competition!");
-
-            // next closest
-            //targetIndex = targetIndex++;
-            // using random
-            targetIndex = Math.floor(Math.random()*targetMap.length);
-        }
-
-        return targetMap[targetIndex].targetRef;
-    }
 
     // nothing yet
     idle(){
@@ -177,29 +128,79 @@ class Automaton{
     // A method that calculates a steering force towards a target
     // STEER = DESIRED MINUS VELOCITY
     seek(target) {
+        if(target != undefined){
+            var desired = p5.Vector.sub(target.pos, this.pos); // A vector pointing from the location to the target
 
-        var desired = p5.Vector.sub(target.pos, this.pos); // A vector pointing from the location to the target
+            var d = desired.mag();
 
-        var d = desired.mag();
+            // Scale with arbitrary damping within 100 pixels
+            if (d < 100) {
+                var m = map(d, 0, 100, 0, this.maxspeed);
+                desired.setMag(m);
+            } else {
+                desired.setMag(this.maxspeed);
+            }
+            // kill bug
+            if (d < 10){
+                this.feed(target);
+            }
 
-        // Scale with arbitrary damping within 100 pixels
-        if (d < 100) {
-            var m = map(d, 0, 100, 0, this.maxspeed);
-            desired.setMag(m);
-        } else {
-            desired.setMag(this.maxspeed);
+            // Steering = Desired minus velocity
+            var steer = p5.Vector.sub(desired, this.vel);
+            steer.limit(this.maxF); // Limit to maximum steering force
+
+            this.applyForce(steer);
         }
-        // kill bug
-        if (d < 10){
-            this.feed(target);
-        }
 
-        // Steering = Desired minus velocity
-        var steer = p5.Vector.sub(desired, this.vel);
-        steer.limit(this.maxF); // Limit to maximum steering force
-
-        this.applyForce(steer);
     }
+
+    getTarget(){
+        // New code, based on abDistanceMap[]
+        // Get index of this automaton in the automatas array
+
+        // get the closest bug index by looking up the index of the
+        // minimum of this automata's row
+        var closestBugIndex = abDistanceMap[this.mi].indexOf(Math.min(...abDistanceMap[this.mi]));
+        console.log("Bugs", bugs);
+        console.log("Bug id", closestBugIndex);
+
+        // Add competition by looping through all automatas
+        // in the abDistanceMap and finding any with a distance <
+        // this automaton's distance
+        var competition = [];
+
+        //for(let i=0;i<abDistanceMap.length;i++){
+        //console.log("Auto ",i, "closes bug index",abDistanceMap[i][closestBugIndex]);
+        //console.log("Auto ",i, "closes bug index",closestBugIndex);
+        /*
+        if(abDistanceMap[i][closestBugIndex] < abDistanceMap[mi][closestBugIndex]){
+            competition.push(i);
+            console.log("Competition:", abDistanceMap[i][closestBugIndex])
+        }
+        */
+
+        //}
+
+
+        // If more than an arbitrary number of automatons
+        // are closer, choose next closest target
+
+        // Set swarm size
+        /*
+        if(competition.length > 15){
+            console.log("Too much competition!");
+
+            // next closest
+            //targetIndex = targetIndex++;
+            // using random
+            targetIndex = Math.floor(Math.random()*targetMap.length);
+        }
+        */
+
+        return bugs[closestBugIndex];
+    }
+
+
 
     reproduce(){
         a = new Automaton(this.pos.x + 10, this.pos.y + 10);
