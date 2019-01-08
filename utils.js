@@ -32,3 +32,17 @@ function compareValues(key, order='asc') {
         );
     }
 }
+
+function createMatrix(rowData,columndata){
+
+    var matrixA = [];
+
+    for(i=0;i<rowData.length;i++){
+        var sums = [];
+        for(j=0;j<columndata.length;j++){
+            sums.push(rowData[i]+columndata[j]);
+        }
+        matrixA.push(sums);
+    }
+    return matrixA;
+}

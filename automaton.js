@@ -102,6 +102,7 @@ class Automaton{
             //targetList.push(bugs[i]);
 
             // Block for testing smarter automaton target decisions
+
             var targetMapRef = {
                 "targetRef" : bugs[i],
                 "targetDistance":bugDistVector.mag()
@@ -123,7 +124,6 @@ class Automaton{
         // are closer, choose next closest target
         var competition = [];
         for(let i=0;i<automatas.length;i++){
-            if(automatas[i].targetRef === this.)
             if(automatas[i].targetDistance < this.targetDistance){
                 competition.push(automatas[i]);
             }
