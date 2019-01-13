@@ -7,10 +7,13 @@ class Automaton{
         this.maxspeed = 4;
         this.maxF = 0.2;
         this.action = 0;
-        this.mi;
+        this.mi; // my-index, the index of this automaton in the automatas[]
+
+        this.target; // set in setTarget
+
 
         this.energy = 0;
-        this.metabolicRate = 5; // number of seconds to count-down an energy unit
+        this.metabolicRate = 2; // number of seconds to count-down an energy unit
         this.starveLimit = -5;
         this.reproduceLimit = 4;
         this.alive = true;
@@ -18,11 +21,15 @@ class Automaton{
         this.colorLowE = [102,0,0];
         this.colorHighE = [51,255,255];
 
-        this.aggression = random(0,99); // to implement, more aggresive means lower proximityComfort, higher maxSpeed
-        this.proximityComfort = 20;
+        this.aggression = random(0,10); // to implement, more aggresive means
+        //console.log("Auto born with aggression level:",this.aggression);
+        // lower proximityComfort, higher maxSpeed, other stuff
+        this.proximityComfort = 15 - this.aggression;
 
         this.desparation = true; // if flag set to true, starving will trigger adrenalineSurge.
         this.adrenalineSurge = false; // if true, override aggression with higher number
+
+        // this.socialstatus TO IMPLEMENT, adding a graph-network of all automatons for social behaviors?
 
         this.disabled = false;
         this.bornOn = new Date();
@@ -49,8 +56,9 @@ class Automaton{
             a.idle();
         }
         if(a.action == 1){
+            this.setTarget();
             // If a is set to seek, seek out closest bug.
-            a.seek(a.getTarget());
+            a.seek(this.target);
         }
 
         // Check Energy
@@ -102,14 +110,14 @@ class Automaton{
     checkEnergy(){
         // Check energy
         if(frameCount % (60*this.metabolicRate) == 0){
-            this.energy--;
+            this.energy-=0.5;
         }
 
-        if(this.energy == this.reproduceLimit){
+        if(this.energy > this.reproduceLimit){
             this.reproduce();
             this.energy = 0;
 
-        } else if(this.energy == this.starveLimit) {
+        } else if(this.energy < this.starveLimit) {
             this.die();
         }
     }
@@ -121,7 +129,7 @@ class Automaton{
         })
 
         // increments energy
-        this.energy++;
+        this.energy += target.energy;
 
     }
 
@@ -141,7 +149,7 @@ class Automaton{
                 desired.setMag(this.maxspeed);
             }
             // kill bug
-            if (d < 10){
+            if (d < target.diameter){
                 this.feed(target);
             }
 
@@ -154,34 +162,56 @@ class Automaton{
 
     }
 
-    getTarget(){
+    setTarget(){
         // New code, based on abDistanceMap[]
-        // Get index of this automaton in the automatas array
 
         // get the closest bug index by looking up the index of the
         // minimum of this automata's row
-        var closestBugIndex = abDistanceMap[this.mi].indexOf(Math.min(...abDistanceMap[this.mi]));
-        console.log("Bugs", bugs);
-        console.log("Bug id", closestBugIndex);
+        //var closestBugIndex = abDistanceMap[this.mi].indexOf(Math.min(...abDistanceMap[this.mi]));
+
+
+        // Prioritize bugs
+        // sorting my row
+        var myRowDistances = [];
+        var sortedBugs = abDistanceMap[this.mi].sort(function(a,b){
+            var priorityA = a.bugRef.energy / a.dist;
+            var priorityB = b.bugRef.energy / b.dist;
+            return priorityB - priorityA;
+        });
+        // output priority for testing
+        //console.log("------")
+        //for (let i = 0; i <sortedBugs.length; i++) {
+        //    console.log("bug ",sortedBugs[i].bugRef.mi," priority:", 10000*(sortedBugs[i].bugRef.energy / sortedBugs[i].dist));
+        //}
+
 
         // Add competition by looping through all automatas
         // in the abDistanceMap and finding any with a distance <
         // this automaton's distance
         var competition = [];
 
-        //for(let i=0;i<abDistanceMap.length;i++){
-        //console.log("Auto ",i, "closes bug index",abDistanceMap[i][closestBugIndex]);
-        //console.log("Auto ",i, "closes bug index",closestBugIndex);
-        /*
-        if(abDistanceMap[i][closestBugIndex] < abDistanceMap[mi][closestBugIndex]){
-            competition.push(i);
-            console.log("Competition:", abDistanceMap[i][closestBugIndex])
+        function checkCompetition(n,me) {
+            for (var q = 0; q < automatas.length; q++) {
+
+                if(q == me.mi) {
+                    continue;
+                }
+
+                // if another auto has the same target and is closer to it than me
+                else if(automatas[q].target == sortedBugs[n].bugRef
+                    && abDistanceMap[q][sortedBugs[n].bugRef.mi] < abDistanceMap[me.mi][sortedBugs[n].bugRef.mi]){
+                    competition.push(automatas[q]);
+                }
+            }
+            if(competition.length > 2 + me.aggression){
+                console.log("Too much comp.");
+                me.target = sortedBugs[n+1].bugRef;
+            }
+            else {
+                me.target = sortedBugs[n].bugRef;
+            }
         }
-        */
-
-        //}
-
-
+        checkCompetition(0,this);
         // If more than an arbitrary number of automatons
         // are closer, choose next closest target
 
@@ -197,7 +227,6 @@ class Automaton{
         }
         */
 
-        return bugs[closestBugIndex];
     }
 
 
@@ -248,6 +277,18 @@ class Automaton{
         }
     }
 
+    clicked(){
+        let d = dist(mouseX, mouseY, this.pos.x, this.pos.y);
+        if(d < this.r * 2*this.scaleFactor){
+            console.log("My Aggression : ", this.aggression);
+            if(this.target != undefined){
+                console.log("My Target : ", this.target.mi);
+            }
+
+        }
+
+    }
+
     setScale(){
         if(this.energy>0){
             this.scaleFactor = 1+(0.2*this.energy);
@@ -271,7 +312,6 @@ class Automaton{
         var c = color(r, g, b);
         return c;
     }
-
 
     display() {
 

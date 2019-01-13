@@ -1,17 +1,15 @@
 h1{
-    text-align: center;
+    /*text-align: center;*/
     color: #444;
     font-family: "Trebuchet MS";
     margin: 60px auto;
 }
 p{
-    text-align: center;
+    /*text-align: center;*/
     font-family: "Trebuchet MS";
     color: #444;
 }
 #content-div{
-    width: 655px;
-    margin: auto;
-    align-items: center;
-    justify-content: center
+    width: 100%;
+    text-align:center;
 }
